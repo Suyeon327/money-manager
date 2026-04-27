@@ -33,12 +33,24 @@ body {
   padding: 0 0 80px;
 }
 /* 하단 고정 계산기 */
+.calc-toggle-btn {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--bg3); border: .5px solid var(--border2);
+  color: var(--text2); font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 101; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: all .2s;
+}
+.calc-toggle-btn.active { background: var(--amber); color: #000; border-color: var(--amber); }
 .calc-wrap {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
   width: 100%; max-width: 430px;
   background: var(--bg2); border-top: .5px solid var(--border2);
-  z-index: 100; padding: 10px 12px 28px;
+  z-index: 100; padding: 10px 12px 36px;
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
 }
+.calc-wrap.open { transform: translateX(-50%) translateY(0); }
 .calc-display {
   text-align: right; padding: 6px 8px 2px;
   min-height: 48px;
@@ -282,8 +294,11 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   </div>
 </div>
 
-<!-- 하단 고정 계산기 -->
-<div class="calc-wrap">
+<!-- 계산기 토글 버튼 -->
+<button class="calc-toggle-btn" id="calc-toggle-btn" onclick="toggleCalc()">⌗</button>
+
+<!-- 하단 계산기 (기본 숨김) -->
+<div class="calc-wrap" id="calc-wrap">
   <div class="calc-display">
     <div class="calc-expr" id="calc-expr"></div>
     <div class="calc-result" id="calc-result">0</div>
@@ -670,6 +685,14 @@ window.updateSeveranceMonth=updateSeveranceMonth;
 // ── 계산기 ─────────────────────────────────────────────
 let cExpr = '', cCurrent = '0', cJustEq = false;
 
+function toggleCalc() {
+  const wrap = document.getElementById('calc-wrap');
+  const btn  = document.getElementById('calc-toggle-btn');
+  const isOpen = wrap.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  document.body.style.paddingBottom = isOpen ? '310px' : '80px';
+}
+
 function calcRender() {
   document.getElementById('calc-expr').textContent = cExpr;
   const n = parseFloat(cCurrent);
@@ -716,6 +739,7 @@ function calcAC() {
 }
 window.calcNum=calcNum; window.calcDot=calcDot; window.calcOp=calcOp;
 window.calcSign=calcSign; window.calcEq=calcEq; window.calcAC=calcAC;
+window.toggleCalc=toggleCalc;
 </script>
 </body>
 </html>

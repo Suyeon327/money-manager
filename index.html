@@ -260,6 +260,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 <div class="section">
   <div class="section-head">
     <span class="section-label">월급날 잔고 목표</span>
+    <button class="section-action" id="goal-edit-btn" onclick="toggleGoalEdit()">수정</button>
   </div>
   <div class="card" id="salary-plan"></div>
 </div>
@@ -384,6 +385,7 @@ const DEFAULT = {
     {id:3,name:'퇴직금',timing:'퇴직월 선택',type:'severance',baseAmount:643,baseMonth:8,baseYear:2026,monthlyIncrease:24,selectedMonth:8},
   ],
   cardEditMode: false,
+  goalEditMode: false,
   nextId: 100,
   memo: '',
 };
@@ -532,7 +534,10 @@ function renderCards() {
 
 function renderSalaryPlan() {
   const salary = S.salaryAmount;
-  document.getElementById('salary-plan').innerHTML = S.salaryGoals.map(g => {
+  const editMode = S.goalEditMode;
+  document.getElementById('goal-edit-btn').textContent = editMode ? '완료' : '수정';
+
+  const rows = S.salaryGoals.map(g => {
     const total = g.required !== null ? g.required + salary : null;
     return `
     <div class="goal-row">
@@ -545,8 +550,18 @@ function renderSalaryPlan() {
         <span class="amount-unit">만</span>
       </div>
       <span class="goal-total">${total !== null ? '= ' + fmt(total) : ''}</span>
-    </div>`
+      ${editMode ? `<button class="del-btn" onclick="deleteGoal(${g.id})">✕</button>` : ''}
+    </div>`;
   }).join('');
+
+  const addForm = editMode ? `
+    <div class="add-form">
+      <input id="ng-date" placeholder="날짜 (예: 8월 25일)" style="flex:1.5;">
+      <input id="ng-amt" placeholder="만원" type="number" inputmode="numeric" style="width:72px;">
+      <button class="add-btn" onclick="addGoal()">추가</button>
+    </div>` : '';
+
+  document.getElementById('salary-plan').innerHTML = rows + addForm;
 }
 
 function renderExtraIncome() {
@@ -653,6 +668,18 @@ function updateGoal(id,val) {
   const g = S.salaryGoals.find(x=>x.id===id);
   if (g) { g.required=val===''?null:parseFloat(val)||0; renderSalaryPlan(); saveToFirebase(); }
 }
+function toggleGoalEdit() { S.goalEditMode=!S.goalEditMode; renderSalaryPlan(); }
+function deleteGoal(id) {
+  S.salaryGoals = S.salaryGoals.filter(x=>x.id!==id);
+  renderSalaryPlan(); saveToFirebase();
+}
+function addGoal() {
+  const date = document.getElementById('ng-date').value.trim();
+  const amt  = document.getElementById('ng-amt').value;
+  if (!date) return;
+  S.salaryGoals.push({id:S.nextId++, date, required: amt===''?null:parseFloat(amt)||0});
+  renderSalaryPlan(); saveToFirebase();
+}
 function updateExtra(id,val) {
   const e = S.extraIncome.find(x=>x.id===id);
   if (e) { e.amount=val; renderExtraIncome(); saveToFirebase(); }
@@ -679,8 +706,9 @@ window.toggleFixed=toggleFixed; window.updateFixed=updateFixed;
 window.deleteFixed=deleteFixed; window.addFixed=addFixed;
 window.toggleCardEdit=toggleCardEdit; window.updateCard=updateCard;
 window.deleteCard=deleteCard; window.addCard=addCard;
-window.updateGoal=updateGoal; window.updateExtra=updateExtra;
-window.updateSeveranceMonth=updateSeveranceMonth;
+window.updateGoal=updateGoal; window.toggleGoalEdit=toggleGoalEdit;
+window.deleteGoal=deleteGoal; window.addGoal=addGoal;
+window.updateExtra=updateExtra; window.updateSeveranceMonth=updateSeveranceMonth;
 
 // ── 계산기 ─────────────────────────────────────────────
 let cExpr = '', cCurrent = '0', cJustEq = false;

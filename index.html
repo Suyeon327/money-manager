@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>잔고 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f0f;
+  --bg2: #181818;
+  --bg3: #222222;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0f0;
+  --text2: #888;
+  --text3: #555;
+  --green: #4ade80;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+}
+/* 하단 고정 계산기 */
+.calc-wrap {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: var(--bg2); border-top: .5px solid var(--border2);
+  z-index: 100; padding: 10px 12px 28px;
+}
+.calc-display {
+  text-align: right; padding: 6px 8px 2px;
+  min-height: 48px;
+}
+.calc-expr {
+  font-family: 'Onest', sans-serif; font-size: 13px; color: var(--text3);
+  min-height: 18px; word-break: break-all;
+}
+.calc-result {
+  font-family: 'Onest', sans-serif; font-size: 28px; font-weight: 300;
+  color: var(--text); letter-spacing: -0.02em;
+}
+.calc-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px;
+}
+.calc-btn {
+  background: var(--bg3); border: none; border-radius: 10px;
+  color: var(--text); font-size: 17px; font-family: 'Onest', sans-serif;
+  padding: 0; height: 46px; cursor: pointer; transition: opacity .1s;
+  display: flex; align-items: center; justify-content: center;
+}
+.calc-btn:active { opacity: .5; }
+.calc-btn.op  { color: var(--amber); }
+.calc-btn.eq  { background: var(--amber); color: #000; font-weight: 600; }
+.calc-btn.clr { color: var(--red); }
+.calc-btn.zero { grid-column: span 2; }
+.topbar { padding: 20px 20px 0; display: flex; align-items: center; justify-content: space-between; }
+.topbar-date { font-size: 12px; color: var(--text3); letter-spacing: .04em; }
+.topbar-title { font-family: 'Onest', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.hero { padding: 28px 20px 20px; }
+.hero-label { font-size: 11px; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
+.hero-main-row { display: flex; align-items: flex-end; gap: 20px; }
+.hero-col { display: flex; flex-direction: column; }
+.hero-col-label { font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.hero-balance { font-family: 'Onest', sans-serif; font-size: 48px; font-weight: 300; letter-spacing: -0.02em; line-height: 1; display: flex; align-items: baseline; }
+.hero-balance input { font-family: 'Onest', sans-serif; font-size: 48px; font-weight: 300; color: var(--text); background: transparent; border: none; outline: none; width: 4ch; min-width: 2ch; letter-spacing: -0.02em; }
+.hero-savings { font-family: 'Onest', sans-serif; font-size: 28px; font-weight: 300; letter-spacing: -0.02em; line-height: 1; display: flex; align-items: baseline; color: var(--text2); }
+.hero-savings input { font-family: 'Onest', sans-serif; font-size: 28px; font-weight: 300; color: var(--text2); background: transparent; border: none; outline: none; width: 3ch; min-width: 2ch; letter-spacing: -0.02em; }
+.hero-unit { font-size: 16px; color: var(--text3); font-weight: 300; }
+.hero-unit-sm { font-size: 12px; color: var(--text3); font-weight: 300; }
+.hero-total-row { margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+.hero-total-label { font-size: 11px; color: var(--text3); }
+.hero-total-value { font-family: 'Onest', sans-serif; font-size: 14px; font-weight: 500; color: var(--text2); }
+.dday-row { padding: 0 20px 20px; }
+.dday-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--bg2); border: .5px solid var(--border2); border-radius: 100px; padding: 8px 16px; font-size: 13px; }
+.dday-num { font-family: 'Onest', sans-serif; font-weight: 600; font-size: 15px; }
+.dday-num.urgent { color: var(--red); }
+.dday-num.warn { color: var(--amber); }
+.dday-num.ok { color: var(--green); }
+.dday-divider { width: 1px; height: 12px; background: var(--border2); }
+.section { padding: 0 20px; margin-bottom: 16px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); font-weight: 500; }
+.section-action { font-size: 11px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.section-action:hover { background: var(--bg3); color: var(--text2); }
+.card { background: var(--bg2); border: .5px solid var(--border); border-radius: 16px; overflow: hidden; }
+.fixed-stats { display: grid; grid-template-columns: 1fr 1fr; border-bottom: .5px solid var(--border); }
+.fixed-stat { padding: 14px 16px; }
+.fixed-stat:first-child { border-right: .5px solid var(--border); }
+.fixed-stat-label { font-size: 10px; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.fixed-stat-value { font-family: 'Onest', sans-serif; font-size: 20px; font-weight: 500; }
+.done-color { color: var(--green); }
+.pending-color { color: var(--red); }
+.fixed-progress { height: 2px; background: var(--bg3); }
+.fixed-progress-fill { height: 2px; background: var(--green); transition: width .4s; }
+.item-row { display: flex; align-items: center; padding: 13px 16px; border-top: .5px solid var(--border); gap: 10px; }
+.check-circle { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border2); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.check-circle.done { background: var(--green); border-color: var(--green); }
+.check-circle.done::after { content: ''; display: block; width: 9px; height: 6px; border-left: 1.5px solid #000; border-bottom: 1.5px solid #000; transform: rotate(-45deg) translateY(-1px); }
+.item-name { flex: 1; font-size: 14px; color: var(--text); }
+.item-name.done { color: var(--text3); text-decoration: line-through; }
+.item-date { font-size: 11px; color: var(--text3); }
+.item-amount { font-family: 'Onest', sans-serif; font-size: 14px; font-weight: 500; color: var(--text2); display: flex; align-items: center; gap: 3px; }
+.item-amount.done { color: var(--text3); }
+.amount-input { font-family: 'Onest', sans-serif; font-size: 14px; font-weight: 500; color: var(--text2); background: transparent; border: none; outline: none; text-align: right; width: 56px; }
+.amount-unit { font-size: 11px; color: var(--text3); }
+.del-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; padding: 0 2px; opacity: .45; flex-shrink: 0; }
+.del-btn:hover { opacity: 1; color: var(--red); }
+.card-tag { font-size: 10px; background: rgba(96,165,250,0.12); color: var(--blue); padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+.add-form { display: flex; gap: 6px; padding: 10px 16px; border-top: .5px solid var(--border); }
+.add-form input { background: var(--bg3); border: .5px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 12px; font-family: 'Noto Sans KR', sans-serif; padding: 7px 10px; outline: none; }
+.add-form input::placeholder { color: var(--text3); }
+.add-btn { background: var(--bg3); border: .5px solid var(--border2); border-radius: 8px; color: var(--text2); font-size: 12px; padding: 7px 14px; cursor: pointer; white-space: nowrap; }
+.card-month-row { display: flex; align-items: center; padding: 13px 16px; border-top: .5px solid var(--border); }
+.card-month-row:first-child { border-top: none; }
+.card-month-label { flex: 1; font-size: 14px; color: var(--text2); }
+.card-month-amt { font-family: 'Onest', sans-serif; font-size: 15px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 4px; }
+.goal-row { display: flex; align-items: center; padding: 13px 16px; border-top: .5px solid var(--border); gap: 8px; }
+.goal-row:first-child { border-top: none; }
+.goal-date { flex: 1; font-size: 14px; color: var(--text2); }
+.goal-input { font-family: 'Onest', sans-serif; font-size: 15px; font-weight: 500; color: var(--text); background: transparent; border: none; outline: none; text-align: right; width: 56px; }
+.goal-salary { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.goal-total { font-family: 'Onest', sans-serif; font-size: 13px; font-weight: 500; color: var(--green); white-space: nowrap; }
+
+/* Extra income */
+.extra-row { display: flex; align-items: center; padding: 13px 16px; border-top: .5px solid var(--border); gap: 10px; }
+.extra-row:first-child { border-top: none; }
+.extra-info { flex: 1; min-width: 0; }
+.extra-name { font-size: 14px; color: var(--text); }
+.extra-timing { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.extra-right { display: flex; align-items: center; gap: 0px; flex-shrink: 0; }
+.extra-amt { font-family: 'Onest', sans-serif; font-size: 15px; font-weight: 500; color: var(--green); display: flex; align-items: baseline; gap: 0px; }
+.extra-plus { font-size: 13px; color: var(--green); }
+.extra-input { font-family: 'Onest', sans-serif; font-size: 15px; font-weight: 500; color: var(--green); background: transparent; border: none; outline: none; text-align: left; width: 4ch; min-width: 2ch; }
+
+/* 퇴직금 드롭다운 */
+.severance-detail { display: flex; align-items: center; padding: 10px 16px; border-top: .5px solid var(--border); background: var(--bg3); gap: 8px; }
+.severance-label { font-size: 12px; color: var(--text3); flex: 1; }
+.severance-select { background: var(--bg2); border: .5px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; padding: 5px 10px; outline: none; cursor: pointer; -webkit-appearance: none; appearance: none; padding-right: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+.severance-calc { font-family: 'Onest', sans-serif; font-size: 13px; font-weight: 500; color: var(--amber); white-space: nowrap; }
+
+.total-box { margin: 12px 16px; background: var(--bg3); border-radius: 12px; padding: 14px 16px; }
+.total-row { display: flex; align-items: center; justify-content: space-between; }
+.total-row + .total-row { margin-top: 10px; padding-top: 10px; border-top: .5px solid var(--border); }
+.total-label { font-size: 12px; color: var(--text3); }
+.total-value { font-family: 'Onest', sans-serif; font-size: 22px; font-weight: 500; color: var(--green); }
+.total-value.base { font-size: 14px; color: var(--text2); }
+#memo-input {
+  width: 100%; min-height: 140px; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+  padding: 16px; resize: none; line-height: 1.7; letter-spacing: .01em;
+}
+#memo-input::placeholder { color: var(--text3); }
+/* 숫자 input 스피너 제거 */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-date" id="today-label"></span>
+</div>
+
+<div class="hero">
+  <div class="hero-label">현재 잔고</div>
+  <div class="hero-main-row">
+    <div class="hero-col">
+      <div class="hero-col-label">잔고</div>
+      <div class="hero-balance">
+        <input id="balance-input" type="number" value="665" inputmode="numeric" onfocus="this.select()">
+        <span class="hero-unit">만</span>
+      </div>
+    </div>
+    <div class="hero-col">
+      <div class="hero-col-label">적금</div>
+      <div class="hero-savings">
+        <input id="savings-input" type="number" value="340" inputmode="numeric" onfocus="this.select()">
+        <span class="hero-unit-sm">만</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-total-row">
+    <span class="hero-total-label">총합</span>
+    <span class="hero-total-value" id="hero-total"></span>
+  </div>
+</div>
+
+<div class="dday-row">
+  <div class="dday-pill">
+    <span style="font-size:12px;color:var(--text2);">다음 월급</span>
+    <div class="dday-divider"></div>
+    <span class="dday-num" id="dday-num"></span>
+    <span style="font-size:12px;color:var(--text2);" id="dday-date"></span>
+  </div>
+</div>
+
+<!-- 고정 지출 -->
+<div class="section">
+  <div class="section-head">
+    <span class="section-label">이번달 고정 지출</span>
+    <span style="font-size:11px;color:var(--text3);" id="fixed-pct-label"></span>
+  </div>
+  <div class="card">
+    <div class="fixed-stats">
+      <div class="fixed-stat">
+        <div class="fixed-stat-label">지출 완료</div>
+        <div class="fixed-stat-value done-color" id="stat-done"></div>
+      </div>
+      <div class="fixed-stat">
+        <div class="fixed-stat-label">지출 예정 최대</div>
+        <div class="fixed-stat-value pending-color" id="stat-pending"></div>
+      </div>
+    </div>
+    <div class="fixed-progress"><div class="fixed-progress-fill" id="fixed-bar"></div></div>
+    <div id="fixed-list"></div>
+    <div class="add-form">
+      <input id="nfn" placeholder="항목" style="flex:1.4;">
+      <input id="nfa" placeholder="만원" type="number" inputmode="numeric" style="width:64px;">
+      <input id="nfd" placeholder="일" type="number" inputmode="numeric" style="width:44px;">
+      <button class="add-btn" onclick="addFixed()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 카드 할부 -->
+<div class="section">
+  <div class="section-head">
+    <span class="section-label">카드 할부 예정</span>
+    <button class="section-action" id="card-edit-btn" onclick="toggleCardEdit()">수정</button>
+  </div>
+  <div class="card" id="card-list"></div>
+</div>
+
+<!-- 월급날 잔고 목표 -->
+<div class="section">
+  <div class="section-head">
+    <span class="section-label">월급날 잔고 목표</span>
+  </div>
+  <div class="card" id="salary-plan"></div>
+</div>
+
+<!-- 추가 수입 -->
+<div class="section">
+  <div class="section-head">
+    <span class="section-label">추가 수입 예정</span>
+  </div>
+  <div class="card">
+    <div id="extra-income"></div>
+    <div class="total-box">
+      <div class="total-row">
+        <span class="total-label">현재 잔고</span>
+        <span class="total-value base" id="total-base"></span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">전체 수입 포함 시</span>
+        <span class="total-value" id="extra-all-total"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 메모 -->
+<div class="section">
+  <div class="section-head">
+    <span class="section-label">메모</span>
+  </div>
+  <div class="card">
+    <textarea id="memo-input" placeholder="자유롭게 메모하세요..."></textarea>
+  </div>
+</div>
+
+<!-- 하단 고정 계산기 -->
+<div class="calc-wrap">
+  <div class="calc-display">
+    <div class="calc-expr" id="calc-expr"></div>
+    <div class="calc-result" id="calc-result">0</div>
+  </div>
+  <div class="calc-grid">
+    <button class="calc-btn clr" onclick="calcAC()">AC</button>
+    <button class="calc-btn op"  onclick="calcOp('%')">%</button>
+    <button class="calc-btn op"  onclick="calcSign()">+/-</button>
+    <button class="calc-btn op"  onclick="calcOp('÷')">÷</button>
+
+    <button class="calc-btn" onclick="calcNum('7')">7</button>
+    <button class="calc-btn" onclick="calcNum('8')">8</button>
+    <button class="calc-btn" onclick="calcNum('9')">9</button>
+    <button class="calc-btn op" onclick="calcOp('×')">×</button>
+
+    <button class="calc-btn" onclick="calcNum('4')">4</button>
+    <button class="calc-btn" onclick="calcNum('5')">5</button>
+    <button class="calc-btn" onclick="calcNum('6')">6</button>
+    <button class="calc-btn op" onclick="calcOp('−')">−</button>
+
+    <button class="calc-btn" onclick="calcNum('1')">1</button>
+    <button class="calc-btn" onclick="calcNum('2')">2</button>
+    <button class="calc-btn" onclick="calcNum('3')">3</button>
+    <button class="calc-btn op" onclick="calcOp('+')">+</button>
+
+    <button class="calc-btn zero" onclick="calcNum('0')">0</button>
+    <button class="calc-btn" onclick="calcDot()">.</button>
+    <button class="calc-btn eq"  onclick="calcEq()">=</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiHTQG7Sw1FKIHRMI8hR8IDxZoKVu-bDk",
+  authDomain: "money-manager-27472.firebaseapp.com",
+  databaseURL: "https://money-manager-27472-default-rtdb.firebaseio.com",
+  projectId: "money-manager-27472",
+  storageBucket: "money-manager-27472.firebasestorage.app",
+  messagingSenderId: "861484618813",
+  appId: "1:861484618813:web:64843cab5c1905afd94654"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dbRef = ref(db, 'moneyData');
+
+const fmt = n => {
+  const r = Math.round(n * 10) / 10;
+  return r.toLocaleString('ko-KR') + '만';
+};
+
+// 기본값 (Firebase에 데이터 없을 때)
+const DEFAULT = {
+  currentBalance: 665,
+  savingsBalance: 340,
+  fixedItems: [
+    {id:1,name:'월세',amount:62.5,dueDay:25,done:true},
+    {id:2,name:'저축',amount:10,dueDay:25,done:true},
+    {id:3,name:'보험',amount:13.2,dueDay:25,done:true},
+    {id:4,name:'생활비',amount:24,dueDay:1,done:false},
+    {id:5,name:'교통비',amount:5.5,dueDay:10,done:false},
+    {id:6,name:'마루보험',amount:3.5,dueDay:13,done:false},
+    {id:7,name:'인터넷/통신비',amount:5,dueDay:30,done:false},
+    {id:8,name:'관리비',amount:8,dueDay:null,done:false},
+  ],
+  cardMonths: [
+    {id:1,month:'5월',amount:52},
+    {id:2,month:'6월',amount:30},
+    {id:3,month:'7월',amount:20},
+  ],
+  salaryGoals: [
+    {id:1,date:'5월 25일',required:550},
+    {id:2,date:'6월 25일',required:630},
+    {id:3,date:'7월 25일',required:null},
+  ],
+  extraIncome: [
+    {id:1,name:'주식 매도 (48주)',amount:120,timing:'미정',type:'normal'},
+    {id:2,name:'적금 만기',amount:1450,timing:'8월 8일',type:'normal'},
+    {id:3,name:'퇴직금',timing:'퇴직월 선택',type:'severance',baseAmount:643,baseMonth:8,baseYear:2026,monthlyIncrease:24,selectedMonth:8},
+  ],
+  cardEditMode: false,
+  nextId: 100,
+  memo: '',
+};
+
+const S = {
+  today: new Date(),
+  salaryDay: 25,
+  salaryAmount: 250,
+  cardPayDay: 10,
+  ...JSON.parse(JSON.stringify(DEFAULT)),
+};
+
+// ── Firebase 저장 (디바운스 500ms) ──────────────────────
+let saveTimer = null;
+function saveToFirebase() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const data = {
+      currentBalance: S.currentBalance,
+      savingsBalance: S.savingsBalance,
+      fixedItems: S.fixedItems,
+      cardMonths: S.cardMonths,
+      salaryGoals: S.salaryGoals,
+      extraIncome: S.extraIncome,
+      nextId: S.nextId,
+      memo: S.memo,
+    };
+    set(dbRef, data).catch(e => console.error('저장 실패', e));
+  }, 500);
+}
+
+// ── Firebase 로드 (최초 1회) ─────────────────────────────
+let loaded = false;
+onValue(dbRef, snapshot => {
+  if (loaded) return; // 최초 1회만 로드
+  loaded = true;
+  const data = snapshot.val();
+  if (data) {
+    S.currentBalance = data.currentBalance ?? DEFAULT.currentBalance;
+    S.savingsBalance = data.savingsBalance ?? DEFAULT.savingsBalance;
+    S.fixedItems     = data.fixedItems     ?? DEFAULT.fixedItems;
+    S.cardMonths     = data.cardMonths     ?? DEFAULT.cardMonths;
+    S.salaryGoals    = data.salaryGoals    ?? DEFAULT.salaryGoals;
+    S.extraIncome    = data.extraIncome    ?? DEFAULT.extraIncome;
+    S.nextId         = data.nextId         ?? DEFAULT.nextId;
+    S.memo           = data.memo           ?? '';
+    // input 값 동기화
+    document.getElementById('balance-input').value = S.currentBalance;
+    document.getElementById('savings-input').value = S.savingsBalance;
+    document.getElementById('memo-input').value    = S.memo;
+  }
+  renderAll();
+});
+
+// ── 렌더 함수들 ──────────────────────────────────────────
+function currentMonthCard() {
+  const m = S.today.getMonth() + 1;
+  return S.cardMonths.find(c => parseInt(c.month) === m) || null;
+}
+
+function severanceAmount(item) {
+  const diff = Math.max(0, item.selectedMonth - item.baseMonth);
+  return item.baseAmount + diff * item.monthlyIncrease;
+}
+
+function nextSalaryDate() {
+  const t = S.today;
+  let d = new Date(t.getFullYear(), t.getMonth(), S.salaryDay);
+  if (d <= t) d = new Date(t.getFullYear(), t.getMonth()+1, S.salaryDay);
+  return d;
+}
+function daysUntil(d) { return Math.ceil((d - S.today) / 86400000); }
+
+function renderAll() {
+  renderHeader();
+  renderFixed();
+  renderCards();
+  renderSalaryPlan();
+  renderExtraIncome();
+  fitInputs();
+}
+
+function renderHeader() {
+  const now = S.today;
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('today-label').textContent =
+    `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${days[now.getDay()]}`;
+  const ns = nextSalaryDate();
+  const d = daysUntil(ns);
+  const el = document.getElementById('dday-num');
+  el.textContent = `D-${d}`;
+  el.className = 'dday-num ' + (d<=5?'urgent':d<=10?'warn':'ok');
+  document.getElementById('dday-date').textContent = `${ns.getMonth()+1}월 ${ns.getDate()}일`;
+  document.getElementById('hero-total').textContent = fmt(S.currentBalance + S.savingsBalance);
+}
+
+function renderFixed() {
+  const fixedDone    = S.fixedItems.filter(i=>i.done).reduce((a,b)=>a+b.amount,0);
+  const fixedPending = S.fixedItems.filter(i=>!i.done).reduce((a,b)=>a+b.amount,0);
+  const total = fixedDone + fixedPending;
+  const pct = total > 0 ? Math.round(fixedDone / total * 100) : 0;
+
+  document.getElementById('stat-done').textContent    = fmt(fixedDone);
+  document.getElementById('stat-pending').textContent = fmt(fixedPending);
+  document.getElementById('fixed-bar').style.width    = pct + '%';
+  document.getElementById('fixed-pct-label').textContent = pct + '% 완료';
+
+  document.getElementById('fixed-list').innerHTML = S.fixedItems.map(item => `
+    <div class="item-row">
+      <div class="check-circle ${item.done?'done':''}" onclick="toggleFixed(${item.id})"></div>
+      <span class="item-name ${item.done?'done':''}">${item.name}</span>
+      ${item.dueDay ? `<span class="item-date">${item.dueDay}일</span>` : ''}
+      <div class="item-amount ${item.done?'done':''}">
+        <input class="amount-input" type="number" inputmode="decimal" value="${item.amount}"
+          onchange="updateFixed(${item.id},parseFloat(this.value)||0)" onfocus="this.select()">
+        <span class="amount-unit">만</span>
+      </div>
+      <button class="del-btn" onclick="deleteFixed(${item.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function renderCards() {
+  const e = S.cardEditMode;
+  document.getElementById('card-edit-btn').textContent = e ? '완료' : '수정';
+  document.getElementById('card-list').innerHTML = S.cardMonths.map(c => `
+    <div class="card-month-row">
+      <span class="card-month-label">${c.month} 카드값</span>
+      <div class="card-month-amt">
+        ${e
+          ? `<input class="amount-input" type="number" inputmode="numeric" value="${c.amount}"
+               onchange="updateCard(${c.id},parseFloat(this.value)||0)" onfocus="this.select()" style="width:64px;">
+             <span class="amount-unit">만</span>
+             <button class="del-btn" onclick="deleteCard(${c.id})" style="margin-left:4px;">✕</button>`
+          : fmt(c.amount)
+        }
+      </div>
+    </div>
+  `).join('')
+  + (e ? `<div class="add-form">
+    <input id="ncm" placeholder="월 (예: 8월)" style="flex:1;">
+    <input id="nca" placeholder="만원" type="number" inputmode="numeric" style="width:72px;">
+    <button class="add-btn" onclick="addCard()">추가</button>
+  </div>` : '');
+}
+
+function renderSalaryPlan() {
+  const salary = S.salaryAmount;
+  document.getElementById('salary-plan').innerHTML = S.salaryGoals.map(g => {
+    const total = g.required !== null ? g.required + salary : null;
+    return `
+    <div class="goal-row">
+      <span class="goal-date">${g.date}</span>
+      <span class="goal-salary">+${salary}만</span>
+      <div style="display:flex;align-items:center;gap:3px;">
+        <input class="goal-input" type="number" inputmode="numeric"
+          value="${g.required !== null ? g.required : ''}" placeholder="—"
+          onchange="updateGoal(${g.id},this.value)" onfocus="this.select()">
+        <span class="amount-unit">만</span>
+      </div>
+      <span class="goal-total">${total !== null ? '= ' + fmt(total) : ''}</span>
+    </div>`
+  }).join('');
+}
+
+function renderExtraIncome() {
+  let allTotal = 0;
+
+  function severanceOptions(item) {
+    const months = [];
+    for (let m = item.baseMonth; m <= 12; m++) months.push({m, label:`${m}월`});
+    for (let m = 1; m <= 6; m++) months.push({m: m+12, label:`${item.baseYear+1}년 ${m}월`});
+    return months.map(o => `<option value="${o.m}" ${item.selectedMonth===o.m?'selected':''}>${o.label}</option>`).join('');
+  }
+
+  const rows = S.extraIncome.map(e => {
+    const isSev = e.type === 'severance';
+    const amt = isSev ? severanceAmount(e) : e.amount;
+    allTotal += amt;
+
+    const sevBlock = isSev ? `
+      <div class="severance-detail">
+        <span class="severance-label">퇴직월</span>
+        <select class="severance-select" onchange="updateSeveranceMonth(${e.id},parseInt(this.value))">
+          ${severanceOptions(e)}
+        </select>
+        <span class="severance-calc">= ${fmt(amt)}</span>
+      </div>` : '';
+
+    return `
+      <div class="extra-row">
+        <div class="extra-info">
+          <div class="extra-name">${e.name}</div>
+          <div class="extra-timing">${e.timing}</div>
+        </div>
+        <div class="extra-right">
+          <div class="extra-amt">
+            <span class="extra-plus">+</span>${isSev
+              ? `<span style="font-family:'Onest',sans-serif;font-size:15px;font-weight:500;">${fmt(amt)}</span>`
+              : `<input class="extra-input" type="number" inputmode="numeric" value="${e.amount}"
+                  onchange="updateExtra(${e.id},parseFloat(this.value)||0)" onfocus="this.select()">`
+            }<span class="amount-unit">만</span>
+          </div>
+        </div>
+      </div>
+      ${sevBlock}`;
+  }).join('');
+
+  document.getElementById('extra-income').innerHTML = rows;
+  document.getElementById('total-base').textContent       = fmt(S.currentBalance);
+  document.getElementById('extra-all-total').textContent  = fmt(S.currentBalance + allTotal);
+}
+
+function fitInputs() {
+  document.querySelectorAll('input[type=number]').forEach(el => {
+    const len = (el.value || el.placeholder || '0').toString().length;
+    el.style.width = Math.max(len, 1) + 'ch';
+  });
+}
+
+document.addEventListener('input', e => {
+  if (e.target.type === 'number') {
+    const len = (e.target.value || '0').toString().length;
+    e.target.style.width = Math.max(len, 1) + 'ch';
+  }
+});
+
+// ── 액션 함수 ─────────────────────────────────────────────
+function toggleFixed(id) {
+  const i = S.fixedItems.find(x=>x.id===id);
+  if (i) { i.done=!i.done; renderAll(); saveToFirebase(); }
+}
+function updateFixed(id,val) {
+  const i = S.fixedItems.find(x=>x.id===id);
+  if (i) { i.amount=val; renderAll(); saveToFirebase(); }
+}
+function deleteFixed(id) {
+  S.fixedItems = S.fixedItems.filter(x=>x.id!==id);
+  renderAll(); saveToFirebase();
+}
+function addFixed() {
+  const name   = document.getElementById('nfn').value.trim();
+  const amount = parseFloat(document.getElementById('nfa').value)||0;
+  const day    = parseInt(document.getElementById('nfd').value)||null;
+  if (!name) return;
+  S.fixedItems.push({id:S.nextId++,name,amount,dueDay:day,done:false});
+  ['nfn','nfa','nfd'].forEach(id=>document.getElementById(id).value='');
+  renderAll(); saveToFirebase();
+}
+function toggleCardEdit() { S.cardEditMode=!S.cardEditMode; renderCards(); }
+function updateCard(id,val) {
+  const c = S.cardMonths.find(x=>x.id===id);
+  if (c) { c.amount=val; renderCards(); saveToFirebase(); }
+}
+function deleteCard(id) {
+  S.cardMonths = S.cardMonths.filter(x=>x.id!==id);
+  renderCards(); saveToFirebase();
+}
+function addCard() {
+  const month  = document.getElementById('ncm').value.trim();
+  const amount = parseFloat(document.getElementById('nca').value)||0;
+  if (!month) return;
+  S.cardMonths.push({id:S.nextId++,month,amount});
+  renderCards(); saveToFirebase();
+}
+function updateGoal(id,val) {
+  const g = S.salaryGoals.find(x=>x.id===id);
+  if (g) { g.required=val===''?null:parseFloat(val)||0; renderSalaryPlan(); saveToFirebase(); }
+}
+function updateExtra(id,val) {
+  const e = S.extraIncome.find(x=>x.id===id);
+  if (e) { e.amount=val; renderExtraIncome(); saveToFirebase(); }
+}
+function updateSeveranceMonth(id,val) {
+  const e = S.extraIncome.find(x=>x.id===id);
+  if (e) { e.selectedMonth=val; renderExtraIncome(); saveToFirebase(); }
+}
+
+// balance / savings 변경 시 저장
+document.getElementById('balance-input').addEventListener('change', function() {
+  S.currentBalance = parseFloat(this.value)||0; renderAll(); saveToFirebase();
+});
+document.getElementById('savings-input').addEventListener('change', function() {
+  S.savingsBalance = parseFloat(this.value)||0; renderAll(); saveToFirebase();
+});
+
+document.getElementById('memo-input').addEventListener('input', function() {
+  S.memo = this.value; saveToFirebase();
+});
+
+// 전역 노출 (onclick에서 사용)
+window.toggleFixed=toggleFixed; window.updateFixed=updateFixed;
+window.deleteFixed=deleteFixed; window.addFixed=addFixed;
+window.toggleCardEdit=toggleCardEdit; window.updateCard=updateCard;
+window.deleteCard=deleteCard; window.addCard=addCard;
+window.updateGoal=updateGoal; window.updateExtra=updateExtra;
+window.updateSeveranceMonth=updateSeveranceMonth;
+
+// ── 계산기 ─────────────────────────────────────────────
+let cExpr = '', cCurrent = '0', cJustEq = false;
+
+function calcRender() {
+  document.getElementById('calc-expr').textContent = cExpr;
+  const n = parseFloat(cCurrent);
+  document.getElementById('calc-result').textContent =
+    isNaN(n) ? cCurrent : n.toLocaleString('ko-KR');
+}
+function calcNum(d) {
+  if (cJustEq) { cCurrent = d; cExpr = ''; cJustEq = false; }
+  else cCurrent = cCurrent === '0' ? d : cCurrent + d;
+  calcRender();
+}
+function calcDot() {
+  if (cJustEq) { cCurrent = '0.'; cExpr = ''; cJustEq = false; }
+  else if (!cCurrent.includes('.')) cCurrent += '.';
+  calcRender();
+}
+function calcOp(op) {
+  cJustEq = false;
+  cExpr = (cExpr ? cEvalExpr() : cCurrent) + ' ' + op + ' ';
+  cCurrent = '0';
+  calcRender();
+}
+function calcSign() {
+  cCurrent = cCurrent.startsWith('-') ? cCurrent.slice(1) : '-' + cCurrent;
+  calcRender();
+}
+function cEvalExpr() {
+  const full = cExpr + cCurrent;
+  try {
+    const normalized = full.replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-');
+    const r = Function('"use strict"; return (' + normalized + ')')();
+    return isFinite(r) ? String(Math.round(r * 1e10) / 1e10) : '오류';
+  } catch { return '오류'; }
+}
+function calcEq() {
+  const r = cEvalExpr();
+  cExpr = cExpr + cCurrent + ' =';
+  cCurrent = r;
+  cJustEq = true;
+  calcRender();
+}
+function calcAC() {
+  cExpr = ''; cCurrent = '0'; cJustEq = false; calcRender();
+}
+window.calcNum=calcNum; window.calcDot=calcDot; window.calcOp=calcOp;
+window.calcSign=calcSign; window.calcEq=calcEq; window.calcAC=calcAC;
+</script>
+</body>
+</html>

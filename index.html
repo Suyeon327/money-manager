@@ -238,11 +238,13 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     </div>
     <div class="fixed-progress"><div class="fixed-progress-fill" id="fixed-bar"></div></div>
     <div id="fixed-list"></div>
-    <div class="add-form">
-      <input id="nfn" placeholder="항목" style="flex:1.4;">
-      <input id="nfa" placeholder="만원" type="number" inputmode="numeric" style="width:64px;">
-      <input id="nfd" placeholder="일" type="number" inputmode="numeric" style="width:44px;">
-      <button class="add-btn" onclick="addFixed()">추가</button>
+    <div class="add-form" style="flex-direction:column;gap:6px;">
+      <input id="nfn" placeholder="항목명" style="width:100%;">
+      <div style="display:flex;gap:6px;">
+        <input id="nfa" placeholder="금액 (만원)" type="number" inputmode="numeric" style="flex:1;">
+        <input id="nfd" placeholder="납부일" type="number" inputmode="numeric" style="width:72px;">
+        <button class="add-btn" onclick="addFixed()">추가</button>
+      </div>
     </div>
   </div>
 </div>
@@ -269,6 +271,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 <div class="section">
   <div class="section-head">
     <span class="section-label">추가 수입 예정</span>
+    <button class="section-action" id="extra-edit-btn" onclick="toggleExtraEdit()">수정</button>
   </div>
   <div class="card">
     <div id="extra-income"></div>
@@ -386,6 +389,7 @@ const DEFAULT = {
   ],
   cardEditMode: false,
   goalEditMode: false,
+  extraEditMode: false,
   nextId: 100,
   memo: '',
 };
@@ -566,6 +570,9 @@ function renderSalaryPlan() {
 
 function renderExtraIncome() {
   let allTotal = 0;
+  const editMode = S.extraEditMode;
+  const editBtn = document.getElementById('extra-edit-btn');
+  if (editBtn) editBtn.textContent = editMode ? '완료' : '수정';
 
   function severanceOptions(item) {
     const months = [];
@@ -602,12 +609,21 @@ function renderExtraIncome() {
                   onchange="updateExtra(${e.id},parseFloat(this.value)||0)" onfocus="this.select()">`
             }<span class="amount-unit">만</span>
           </div>
+          ${editMode ? `<button class="del-btn" onclick="deleteExtra(${e.id})" style="margin-left:6px;">✕</button>` : ''}
         </div>
       </div>
       ${sevBlock}`;
   }).join('');
 
-  document.getElementById('extra-income').innerHTML = rows;
+  const addForm = editMode ? `
+    <div class="add-form">
+      <input id="nei-name" placeholder="항목명" style="flex:1.4;">
+      <input id="nei-timing" placeholder="시기" style="flex:1;">
+      <input id="nei-amt" placeholder="만원" type="number" inputmode="numeric" style="width:64px;">
+      <button class="add-btn" onclick="addExtra()">추가</button>
+    </div>` : '';
+
+  document.getElementById('extra-income').innerHTML = rows + addForm;
   document.getElementById('total-base').textContent       = fmt(S.currentBalance);
   document.getElementById('extra-all-total').textContent  = fmt(S.currentBalance + allTotal);
 }
@@ -688,6 +704,20 @@ function updateSeveranceMonth(id,val) {
   const e = S.extraIncome.find(x=>x.id===id);
   if (e) { e.selectedMonth=val; renderExtraIncome(); saveToFirebase(); }
 }
+function toggleExtraEdit() { S.extraEditMode=!S.extraEditMode; renderExtraIncome(); }
+function deleteExtra(id) {
+  S.extraIncome = S.extraIncome.filter(x=>x.id!==id);
+  renderExtraIncome(); saveToFirebase();
+}
+function addExtra() {
+  const name   = document.getElementById('nei-name').value.trim();
+  const timing = document.getElementById('nei-timing').value.trim();
+  const amount = parseFloat(document.getElementById('nei-amt').value)||0;
+  if (!name) return;
+  S.extraIncome.push({id:S.nextId++, name, timing: timing||'미정', amount, type:'normal'});
+  ['nei-name','nei-timing','nei-amt'].forEach(id=>document.getElementById(id).value='');
+  renderExtraIncome(); saveToFirebase();
+}
 
 // balance / savings 변경 시 저장
 document.getElementById('balance-input').addEventListener('change', function() {
@@ -709,6 +739,7 @@ window.deleteCard=deleteCard; window.addCard=addCard;
 window.updateGoal=updateGoal; window.toggleGoalEdit=toggleGoalEdit;
 window.deleteGoal=deleteGoal; window.addGoal=addGoal;
 window.updateExtra=updateExtra; window.updateSeveranceMonth=updateSeveranceMonth;
+window.toggleExtraEdit=toggleExtraEdit; window.deleteExtra=deleteExtra; window.addExtra=addExtra;
 
 // ── 계산기 ─────────────────────────────────────────────
 let cExpr = '', cCurrent = '0', cJustEq = false;

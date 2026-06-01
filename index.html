@@ -178,9 +178,42 @@ body {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* 비밀번호 잠금 화면 */
+#lock-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999; gap: 16px;
+}
+#lock-screen.hidden { display: none; }
+.lock-title { font-family: 'Onest', sans-serif; font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: .02em; }
+.lock-sub { font-size: 12px; color: var(--text3); }
+.lock-input {
+  background: var(--bg2); border: .5px solid var(--border2);
+  border-radius: 12px; color: var(--text); font-size: 20px;
+  font-family: 'Onest', sans-serif; letter-spacing: .2em;
+  padding: 14px 20px; outline: none; text-align: center; width: 200px;
+}
+.lock-input.error { border-color: var(--red); }
+.lock-btn {
+  background: var(--bg3); border: .5px solid var(--border2);
+  border-radius: 12px; color: var(--text); font-size: 14px;
+  padding: 12px 40px; cursor: pointer; width: 200px;
+}
+.lock-error { font-size: 12px; color: var(--red); min-height: 16px; }
 </style>
 </head>
 <body>
+
+<!-- 비밀번호 잠금 화면 -->
+<div id="lock-screen">
+  <div class="lock-title">잔고 관리</div>
+  <div class="lock-sub">비밀번호를 입력하세요</div>
+  <input class="lock-input" id="lock-input" type="password" inputmode="numeric" maxlength="8" placeholder="••••" onkeydown="if(event.key==='Enter')checkPassword()">
+  <div class="lock-error" id="lock-error"></div>
+  <button class="lock-btn" onclick="checkPassword()">확인</button>
+</div>
 
 <div class="topbar">
   <span class="topbar-date" id="today-label"></span>
@@ -333,6 +366,32 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     <button class="calc-btn eq"  onclick="calcEq()">=</button>
   </div>
 </div>
+
+<!-- 비밀번호 잠금 -->
+<script>
+const CORRECT_PASSWORD = "1234"; // ← 여기서 비밀번호 변경
+const SESSION_KEY = "budget_unlocked";
+
+function checkPassword() {
+  const input = document.getElementById('lock-input');
+  const error = document.getElementById('lock-error');
+  if (input.value === CORRECT_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, 'true');
+    document.getElementById('lock-screen').classList.add('hidden');
+    error.textContent = '';
+  } else {
+    input.classList.add('error');
+    error.textContent = '비밀번호가 틀렸습니다';
+    input.value = '';
+    setTimeout(() => input.classList.remove('error'), 600);
+  }
+}
+
+// 이미 인증된 세션이면 바로 열기
+if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+  document.getElementById('lock-screen').classList.add('hidden');
+}
+</script>
 
 <!-- Firebase SDK -->
 <script type="module">

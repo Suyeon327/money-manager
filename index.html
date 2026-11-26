@@ -373,7 +373,7 @@ const MONTHS=[];for(let i=0;i<13;i++){const t=TY*12+TM-1+i;MONTHS.push(Math.floo
 const yl=ym=>(+ym.slice(0,4)===TY?'':ym.slice(2,4)+'년 ')+(+ym.slice(5))+'월';
 const monthOpts=sel=>MONTHS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${yl(m)}</option>`).join('');
 const addM=(ym,k)=>{const t=(+ym.slice(0,4))*12+(+ym.slice(5))-1+k;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0');};
-const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,loan:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,nid:100,incPend:true,incCard:true,memo:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
+const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,loan:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,nid:100,incPend:true,incCard:true,memo:'',fixedCycle:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const grp=ym=>S.recv.find(g=>g.ym===ym);
 const gTotal=g=>g.items.reduce((a,r)=>a+r.amt,0);
@@ -552,11 +552,14 @@ const __ads=renderAds; renderAds=function(){__ads();persist();};
 $('memo-input').oninput=function(){S.memo=this.value;persist();};
 $('goal').oninput=function(){S.goals[MONTHS[0]]=parseFloat(this.value)||0;calc();};$('ad-meta').oninput=renderAds;$('ad-tw').oninput=renderAds;
 const arr=v=>Array.isArray(v)?v.filter(Boolean):(v?Object.values(v):[]);
-function payload(){return {fixedItems:S.fixed,cardMonths:S.cards,accounts:S.accs,recvGroups:S.recv,goalMap:S.goals,sev:S.sev,adMeta:+$('ad-meta').value||0,adTw:+$('ad-tw').value||0,nextId:S.nid,memo:S.memo,longGoal:S.longGoal,loans:S.loans,loansInit:true};}
+function payload(){return {fixedItems:S.fixed,cardMonths:S.cards,accounts:S.accs,recvGroups:S.recv,goalMap:S.goals,sev:S.sev,adMeta:+$('ad-meta').value||0,adTw:+$('ad-tw').value||0,nextId:S.nid,memo:S.memo,longGoal:S.longGoal,loans:S.loans,loansInit:true,fixedCycle:S.fixedCycle};}
 function applyData(d){
   d=d||{};
   const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n;};
   S.fixed=arr(d.fixedItems).map(x=>Object.assign(x,{amount:num(x.amount)})); S.cards=arr(d.cardMonths).map(x=>Object.assign(x,{amount:num(x.amount)}));
+  S.fixedCycle=MONTHS[0]; window.__needSave=false;
+  if(d.fixedCycle&&d.fixedCycle!==MONTHS[0]){ S.fixed.forEach(x=>{x.done=false;}); window.__needSave=true; }
+  else if(!d.fixedCycle){ window.__needSave=true; }
   S.accs=d.accounts?arr(d.accounts):[{id:1,name:'통장',amt:d.currentBalance||0,inc:true},{id:2,name:'적금',amt:d.savingsBalance||0,inc:false}].filter(a=>a.amt);
   S.recv=arr(d.recvGroups).map(g=>({ym:g.ym,items:arr(g.items).map(i=>Object.assign(i,{amt:num(i.amt)}))}));
   S.goals={}; Object.entries(d.goalMap||{}).forEach(([k,v])=>{S.goals[k]=num(v);});
@@ -628,6 +631,7 @@ onAuthStateChanged(auth, user => {
       window.applyData(snap.val());
       lastJSON = JSON.stringify(JSON.parse(JSON.stringify(window.payload())));
       armed = true;
+      if (window.__needSave) { lastJSON = ''; window.__persist(); }
     }, () => setStatus('불러오기 실패'));
   } else {
     $('lock-screen').classList.remove('hidden');

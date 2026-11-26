@@ -230,6 +230,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .acc-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px 16px}
 .hero-balance{cursor:pointer}
 .sec-actions{display:flex;align-items:center;gap:6px}
+.lg-box{position:relative;padding:16px}
+.lg-fill{position:absolute;top:0;bottom:0;left:0;width:0;background:rgba(96,165,250,0.18);transition:width .4s}
+.lg-inner{position:relative}
+.lg-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lg-name{font-size:15px;color:var(--text)}
+.lg-pct{font-family:'Onest',sans-serif;font-size:28px;font-weight:500;color:var(--blue);line-height:1}
+.lg-row2{display:flex;justify-content:space-between;align-items:center;margin-top:6px;min-height:22px}
+.lg-sum{font-size:12px;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -270,7 +278,6 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
       <div class="fixed-stat"><div class="fixed-stat-label">월급날 예상</div><div class="fixed-stat-value" id="proj"></div></div>
       <div class="fixed-stat"><div class="fixed-stat-label">목표 대비</div><div class="fixed-stat-value" id="diff"></div></div>
     </div>
-    <div class="fixed-progress"><div class="fixed-progress-fill" id="goal-bar"></div></div>
     <div class="edwrap" id="goal-wrap">
       <div class="goal-row"><span class="goal-date">월급날 목표</span><span class="vo goal-total" style="color:var(--text)" id="goal-v"></span><input class="eo goal-input" id="goal" type="number" inputmode="numeric"><span class="eo goal-salary">만</span></div>
       <div id="goal-list" class="eo" style="background:rgba(255,255,255,0.02)"></div>
@@ -279,21 +286,20 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     <div class="goal-row"><span class="goal-date">− 남은 고정지출</span><span class="goal-total" style="color:var(--red)" id="k-fixed"></span></div>
     <div class="goal-row" id="row-pend"><button class="tg" id="tg-pend" onclick="S.incPend=!S.incPend;calc()" aria-label="아직 안 받은 돈 포함"></button><span class="goal-date">+ <span id="k-pendname"></span> 받을 돈</span><span class="goal-total" id="k-pend"></span></div>
     <div class="goal-row" id="row-card"><button class="tg" id="tg-card" onclick="S.incCard=!S.incCard;calc()" aria-label="카드값 포함"></button><span class="goal-date">− <span id="k-cardname"></span> 카드값</span><span class="goal-total" style="color:var(--red)" id="k-card"></span></div>
-    <div class="goal-row" style="background:var(--bg3)"><span class="goal-date" style="font-size:10px;color:var(--text3);letter-spacing:.1em">장기 목표</span><button class="section-action" data-ed="lg"></button></div>
-    <div class="edwrap" id="lg-wrap">
-      <div class="goal-row" style="padding-bottom:2px"><span class="vo goal-date" id="lg-name-v" style="color:var(--text)"></span><input class="eo acc-name" id="lg-name" type="text" placeholder="목표 이름"><span class="goal-total" id="lt-pct" style="color:var(--blue)"></span></div>
-      <div class="goal-row" style="padding:0 16px 10px"><span class="goal-date" style="font-size:12px;color:var(--text3)" id="lt-sum"></span><span class="eo" style="display:flex;align-items:center;gap:4px"><input class="goal-input" id="lg-amt" type="number" inputmode="numeric" style="width:64px"><span class="goal-salary">만</span></span></div>
-      <div class="fixed-progress"><div class="fixed-progress-fill" id="lt-bar" style="background:var(--blue)"></div></div>
-      <div class="goal-row" style="background:var(--bg3)"><span class="goal-date" style="font-size:10px;color:var(--text3);letter-spacing:.1em">대출</span></div>
-      <div id="loan-list"></div>
-      <div class="add-form eo"><input id="nln" placeholder="대출 이름" style="flex:1.2;min-width:0"><input id="nla" placeholder="만원" type="number" inputmode="decimal" style="width:64px;"><button class="add-btn" onclick="addLoan()">추가</button></div>
-    </div>
   </div>
 </div>
 
-<div class="section tight">
-  <div class="section-head"><span class="section-label">받을 돈</span><button class="section-action" data-ed="recv"></button></div>
-  <div class="card" id="recv-months"></div>
+<div class="section">
+  <div class="section-head"><span class="section-label">장기 목표</span><button class="section-action" data-ed="lg"></button></div>
+  <div class="card edwrap" id="lg-wrap">
+    <div class="lg-box">
+      <div class="lg-fill" id="lt-fill"></div>
+      <div class="lg-inner">
+        <div class="lg-row"><span class="vo lg-name" id="lg-name-v"></span><input class="eo acc-name" id="lg-name" type="text" placeholder="목표 이름"><span class="lg-pct" id="lt-pct"></span></div>
+        <div class="lg-row2"><span class="lg-sum" id="lt-sum"></span><span class="eo" style="display:flex;align-items:center;gap:4px"><input class="goal-input" id="lg-amt" type="number" inputmode="numeric" style="width:64px"><span class="goal-salary">만</span></span></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="section tight">
@@ -317,9 +323,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   </div>
 </div>
 
-<div class="section">
-  <div class="section-head"><span class="section-label">카드 할부 예정</span><button class="section-action" data-ed="cards"></button></div>
+<div class="section tight">
+  <div class="section-head"><span class="section-label">카드값</span><button class="section-action" data-ed="cards"></button></div>
   <div class="card" id="card-list"></div>
+</div>
+
+<div class="section">
+  <div class="section-head"><span class="section-label">받을 돈</span><button class="section-action" data-ed="recv"></button></div>
+  <div class="card" id="recv-months"></div>
 </div>
 
 <div class="section">
@@ -333,6 +344,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     <div class="goal-row"><span class="goal-date">메타 · 매주 일요일</span><span class="vo goal-total" style="color:var(--text)" id="ad-meta-v"></span><input class="eo goal-input" id="ad-meta" type="number" value="14" inputmode="decimal"><span class="eo goal-salary">만</span></div>
     <div class="goal-row"><span class="goal-date">트위터 · 주중 분산</span><span class="vo goal-total" style="color:var(--text)" id="ad-tw-v"></span><input class="eo goal-input" id="ad-tw" type="number" value="7" inputmode="decimal"><span class="eo goal-salary">만</span></div>
     <div class="goal-row"><span class="goal-date">주간 합계</span><span class="goal-total" style="color:var(--text)" id="ad-sum"></span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head"><span class="section-label">대출</span><button class="section-action" data-ed="loan"></button></div>
+  <div class="card edwrap" id="loan-wrap">
+    <div id="loan-list"></div>
+    <div class="add-form eo"><input id="nln" placeholder="대출 이름" style="flex:1.2;min-width:0"><input id="nla" placeholder="만원" type="number" inputmode="decimal" style="width:64px;"><button class="add-btn" onclick="addLoan()">추가</button></div>
   </div>
 </div>
 
@@ -354,7 +373,7 @@ const MONTHS=[];for(let i=0;i<13;i++){const t=TY*12+TM-1+i;MONTHS.push(Math.floo
 const yl=ym=>(+ym.slice(0,4)===TY?'':ym.slice(2,4)+'년 ')+(+ym.slice(5))+'월';
 const monthOpts=sel=>MONTHS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${yl(m)}</option>`).join('');
 const addM=(ym,k)=>{const t=(+ym.slice(0,4))*12+(+ym.slice(5))-1+k;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0');};
-const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,nid:100,incPend:true,incCard:true,memo:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
+const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,loan:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,nid:100,incPend:true,incCard:true,memo:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const grp=ym=>S.recv.find(g=>g.ym===ym);
 const gTotal=g=>g.items.reduce((a,r)=>a+r.amt,0);
@@ -420,12 +439,12 @@ function renderFixed(){
   const d=S.fixed.filter(i=>i.done).reduce((a,b)=>a+b.amount,0), p=S.fixed.filter(i=>!i.done).reduce((a,b)=>a+b.amount,0), t=d+p, pct=t?Math.round(d/t*100):0;
   $('stat-done').textContent=fmt(d); $('stat-pending').textContent=fmt(p);
   $('fixed-bar').style.width=pct+'%'; $('fixed-body').style.display=S.fixedOpen?'block':'none'; $('fixed-chev').classList.toggle('open',S.fixedOpen); $('fixed-pct-label').textContent=pct+'% 완료';
-  $('fixed-list').innerHTML=S.fixed.map(i=>e?`
+  $('fixed-list').innerHTML=[...S.fixed].sort((a,b)=>((a.done?1:0)-(b.done?1:0))||(b.amount-a.amount)).map(i=>e?`
     <div class="item-row">
       <div class="check-circle ${i.done?'done':''}" onclick="toggleFixed(${i.id})"></div>
       <input class="acc-name ${i.done?'off':''}" type="text" value="${esc(i.name)}" onchange="S.fixed.find(x=>x.id===${i.id}).name=this.value;renderAll()">
       <div class="item-amount ${i.done?'done':''}"><input class="amount-input" type="number" inputmode="decimal" value="${i.amount}" onchange="updFixed(${i.id},parseFloat(this.value)||0)" onfocus="this.select()"><span class="amount-unit">만</span></div>
-      <span class="drag-h" title="드래그해서 순서 변경">⋮⋮</span><button class="del-btn" onclick="delFixed(${i.id})">✕</button>
+      <button class="del-btn" onclick="delFixed(${i.id})">✕</button>
     </div>`:`
     <div class="item-row">
       <div class="check-circle ${i.done?'done':''}" onclick="toggleFixed(${i.id})"></div>
@@ -460,7 +479,7 @@ function renderAcc(){
     <input class="acc-name ${a.inc?'':'off'}" type="text" value="${esc(a.name)}" onchange="S.accs.find(x=>x.id===${a.id}).name=this.value;renderAll()">
     <div class="item-amount ${a.inc?'':'done'}"><input class="amount-input" type="number" inputmode="decimal" value="${a.amt}" onchange="S.accs.find(x=>x.id===${a.id}).amt=parseFloat(this.value)||0;renderAll()" onfocus="this.select()" style="width:64px"><span class="amount-unit">만</span></div>
     <span class="drag-h" title="드래그해서 순서 변경">⋮⋮</span><button class="del-btn" onclick="S.accs=S.accs.filter(x=>x.id!==${a.id});renderAll()">✕</button></div>`
-  :`<div class="item-row"><span class="item-name ${a.inc?'':'done'}">${esc(a.name)}${a.inc?'':' <span class="card-tag" style="background:var(--bg3);color:var(--text3)">합산 제외</span>'}</span><div class="item-amount ${a.inc?'':'done'}">${fmt(a.amt)}</div></div>`).join('');
+  :`<div class="item-row"><div class="check-circle ${a.inc?'done':''}" onclick="S.accs.find(x=>x.id===${a.id}).inc=!S.accs.find(x=>x.id===${a.id}).inc;renderAll()"></div><span class="item-name ${a.inc?'':'done'}">${esc(a.name)}${a.inc?'':' <span class="card-tag" style="background:var(--bg3);color:var(--text3)">합산 제외</span>'}</span><div class="item-amount ${a.inc?'':'done'}">${fmt(a.amt)}</div></div>`).join('');
 }
 function addAcc(){const n=$('nan').value.trim(),a=parseFloat($('naa').value);if(!n||isNaN(a))return;S.accs.push({id:S.nid++,name:n,amt:a,inc:true});$('nan').value=$('naa').value='';renderAll();}
 function renderAds(){ const m=+$('ad-meta').value||0, t=+$('ad-tw').value||0; $('ad-meta-v').textContent=fmt(m); $('ad-tw-v').textContent=fmt(t); $('ad-sum').textContent=fmt(m+t); }
@@ -474,13 +493,12 @@ function calc(){
     const proj=cur+(S.incPend?pend:0)-fixedPend-(S.incCard?card.amount:0), d=proj-goal;
   $('cur').textContent=(Math.round(cur*10)/10).toLocaleString('ko-KR'); $('proj').textContent=fmt(proj);
   $('diff').textContent=sg(d); $('diff').style.color=d>=0?'var(--green)':'var(--red)';
-  $('goal-bar').style.width=(goal>0?Math.max(0,Math.min(100,proj/goal*100)):0)+'%'; $('goal-bar').style.background=d>=0?'var(--green)':'var(--red)';
   $('k-cur').textContent=fmt(cur); $('k-pendname').textContent=yl(MONTHS[0]); $('k-pend').textContent='+'+fmt(pend); $('k-fixed').textContent='−'+fmt(fixedPend);
   $('k-cardname').textContent=card.month; $('k-card').textContent='−'+fmt(card.amount);
   [['pend',S.incPend],['card',S.incCard]].forEach(([k,on])=>{$('tg-'+k).classList.toggle('on',on);$('row-'+k).classList.toggle('off',!on);});
-  const lg=+S.longGoal.amt||0; $('lt-pct').textContent=(lg>0?Math.round(cur/lg*100):0)+'%'; $('lt-sum').textContent=fmt(cur)+' / '+fmt(lg); $('lg-name-v').textContent=S.longGoal.name||'장기 목표'; $('lt-bar').style.width=(lg>0?Math.max(0,Math.min(100,cur/lg*100)):0)+'%';
+  const lg=+S.longGoal.amt||0; $('lt-pct').textContent=(lg>0?Math.round(cur/lg*100):0)+'%'; $('lt-sum').textContent=fmt(cur)+' / '+fmt(lg); $('lg-name-v').textContent=S.longGoal.name||'장기 목표'; $('lt-fill').style.width=(lg>0?Math.max(0,Math.min(100,cur/lg*100)):0)+'%';
 }
-const EDW={accs:'acc-card',goal:'goal-wrap',lg:'lg-wrap',fixed:'fixed-card',ads:'ads-card'};
+const EDW={accs:'acc-card',goal:'goal-wrap',lg:'lg-wrap',loan:'loan-wrap',fixed:'fixed-card',ads:'ads-card'};
 function toggleEd(k){S.ed[k]=!S.ed[k]; if(k==='fixed'&&S.ed[k])S.fixedOpen=true; if(k==='accs'&&S.ed[k])S.accOpen=true; renderAll();}
 function syncEd(){
   document.querySelectorAll('[data-ed]').forEach(b=>{b.textContent=S.ed[b.dataset.ed]?'완료':'수정'; b.onclick=ev=>{ev.stopPropagation();toggleEd(b.dataset.ed);};});
@@ -495,7 +513,7 @@ function updCard(id,v){S.cards.find(x=>x.id===id).amount=v;renderAll();}
 function delCard(id){S.cards=S.cards.filter(x=>x.id!==id);renderAll();}
 function addCard(){const m=$('ncm').value.trim(),a=parseFloat($('nca').value);if(!m||isNaN(a))return;S.cards.push({id:S.nid++,month:m,amount:a});renderAll();}
 function renderLoans(){
-  const e=S.ed.lg;
+  const e=S.ed.loan;
   $('loan-list').innerHTML=S.loans.map(l=>e?`<div class="item-row"><input class="acc-name" type="text" value="${esc(l.name)}" onchange="S.loans.find(x=>x.id===${l.id}).name=this.value;renderAll()"><div class="item-amount" style="color:var(--red)"><input class="amount-input" type="number" inputmode="decimal" value="${l.amt}" style="color:var(--red);width:64px" onchange="S.loans.find(x=>x.id===${l.id}).amt=parseFloat(this.value)||0;renderAll()" onfocus="this.select()"><span class="amount-unit">만</span></div><button class="del-btn" onclick="S.loans=S.loans.filter(x=>x.id!==${l.id});renderAll()">✕</button></div>`
   :`<div class="item-row"><span class="item-name">${esc(l.name)}</span><div class="item-amount" style="color:var(--red)">${fmt(l.amt)}</div></div>`).join('')
   +(!S.loans.length&&!e?`<div class="item-row"><span class="item-date">등록된 대출이 없어요</span></div>`:'');
@@ -528,7 +546,6 @@ function enableSort(listId,arrName){
   });
 }
 const __ra=renderAcc; renderAcc=function(){__ra();enableSort('acc-list','accs');};
-const __rf=renderFixed; renderFixed=function(){__rf();enableSort('fixed-list','fixed');};
 function persist(){ if(window.__persist) window.__persist(); }
 const __calc=calc; calc=function(){__calc();persist();};
 const __ads=renderAds; renderAds=function(){__ads();persist();};

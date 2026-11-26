@@ -222,6 +222,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .section.tight{margin-bottom:8px}
 .section.tight .section-head{margin-bottom:6px}
 #fixed-list .item-row{padding:9px 16px}
+.drag-h{cursor:grab;color:var(--text3);touch-action:none;user-select:none;-webkit-user-select:none;padding:6px 4px;font-size:13px;line-height:1;flex-shrink:0;letter-spacing:-2px}
+.drag-h:active{cursor:grabbing;color:var(--text2)}
+.item-row.dragging{background:var(--bg3);box-shadow:0 0 0 .5px var(--border2) inset}
 </style>
 </head>
 <body>
@@ -417,7 +420,7 @@ function renderFixed(){
       <span class="item-name ${i.done?'done':''}">${i.name}</span>
       ${i.dueDay?`<span class="item-date">${i.dueDay}일</span>`:''}
       <div class="item-amount ${i.done?'done':''}"><input class="amount-input" type="number" inputmode="decimal" value="${i.amount}" onchange="updFixed(${i.id},parseFloat(this.value)||0)" onfocus="this.select()"><span class="amount-unit">만</span></div>
-      <button class="del-btn" onclick="delFixed(${i.id})">✕</button>
+      <span class="drag-h" title="드래그해서 순서 변경">⋮⋮</span><button class="del-btn" onclick="delFixed(${i.id})">✕</button>
     </div>`).join('');
 }
 function renderCards(){
@@ -442,7 +445,7 @@ function renderAcc(){
     <div class="check-circle ${a.inc?'done':''}" onclick="S.accs.find(x=>x.id===${a.id}).inc=!S.accs.find(x=>x.id===${a.id}).inc;renderAll()"></div>
     <input class="acc-name ${a.inc?'':'off'}" type="text" value="${a.name}" onchange="S.accs.find(x=>x.id===${a.id}).name=this.value;renderAll()">
     <div class="item-amount ${a.inc?'':'done'}"><input class="amount-input" type="number" inputmode="decimal" value="${a.amt}" onchange="S.accs.find(x=>x.id===${a.id}).amt=parseFloat(this.value)||0;renderAll()" onfocus="this.select()" style="width:64px"><span class="amount-unit">만</span></div>
-    <button class="del-btn" onclick="S.accs=S.accs.filter(x=>x.id!==${a.id});renderAll()">✕</button></div>`).join('');
+    <span class="drag-h" title="드래그해서 순서 변경">⋮⋮</span><button class="del-btn" onclick="S.accs=S.accs.filter(x=>x.id!==${a.id});renderAll()">✕</button></div>`).join('');
 }
 function addAcc(){const n=$('nan').value.trim(),a=parseFloat($('naa').value);if(!n||isNaN(a))return;S.accs.push({id:S.nid++,name:n,amt:a,inc:true});$('nan').value=$('naa').value='';renderAll();}
 function renderAds(){ $('ad-sum').textContent=fmt((+$('ad-meta').value||0)+(+$('ad-tw').value||0)); }
@@ -478,6 +481,32 @@ function renderLoans(){
 function addLoan(){const n=$('nln').value.trim(),a=parseFloat($('nla').value);if(!n||isNaN(a))return;S.loans.push({id:S.nid++,name:n,amt:a});$('nln').value=$('nla').value='';renderAll();}
 $('lg-name').onchange=function(){S.longGoal.name=this.value;renderAll();};
 $('lg-amt').oninput=function(){S.longGoal.amt=parseFloat(this.value)||0;calc();};
+function enableSort(listId,arrName){
+  const list=$(listId); if(!list) return;
+  list.querySelectorAll('.drag-h').forEach(h=>{
+    h.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      const row=h.closest('.item-row'), startIdx=[...list.children].indexOf(row); let idx=startIdx;
+      try{h.setPointerCapture(e.pointerId);}catch(_){}
+      row.classList.add('dragging');
+      const move=ev=>{
+        const rs=[...list.children].filter(r=>r!==row); let t=rs.length;
+        for(let i=0;i<rs.length;i++){const b=rs[i].getBoundingClientRect(); if(ev.clientY<b.top+b.height/2){t=i;break;}}
+        const ref=rs[t]||null; if(ref!==row.nextSibling) list.insertBefore(row,ref);
+        idx=[...list.children].indexOf(row);
+      };
+      const up=()=>{
+        h.removeEventListener('pointermove',move); h.removeEventListener('pointerup',up); h.removeEventListener('pointercancel',up);
+        row.classList.remove('dragging');
+        if(idx!==startIdx){const a=S[arrName]; const m=a.splice(startIdx,1)[0]; a.splice(idx,0,m);}
+        renderAll();
+      };
+      h.addEventListener('pointermove',move); h.addEventListener('pointerup',up); h.addEventListener('pointercancel',up);
+    });
+  });
+}
+const __ra=renderAcc; renderAcc=function(){__ra();enableSort('acc-list','accs');};
+const __rf=renderFixed; renderFixed=function(){__rf();enableSort('fixed-list','fixed');};
 function persist(){ if(window.__persist) window.__persist(); }
 const __calc=calc; calc=function(){__calc();persist();};
 const __ads=renderAds; renderAds=function(){__ads();persist();};

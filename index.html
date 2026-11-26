@@ -275,9 +275,12 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     <div class="goal-row" id="row-pend"><button class="tg" id="tg-pend" onclick="S.incPend=!S.incPend;calc()" aria-label="아직 안 받은 돈 포함"></button><span class="goal-date">+ <span id="k-pendname"></span> 받을 돈</span><span class="goal-total" id="k-pend"></span></div>
     <div class="goal-row" id="row-card"><button class="tg" id="tg-card" onclick="S.incCard=!S.incCard;calc()" aria-label="카드값 포함"></button><span class="goal-date">− <span id="k-cardname"></span> 카드값</span><span class="goal-total" style="color:var(--red)" id="k-card"></span></div>
     <div class="goal-row" style="background:var(--bg3)"><span class="goal-date" style="font-size:10px;color:var(--text3);letter-spacing:.1em">장기 목표</span></div>
-    <div class="goal-row"><span class="goal-date">내년 3월 4,000만 모으기</span><span class="goal-total" id="lt-pct"></span></div>
+    <div class="goal-row"><input class="acc-name" id="lg-name" type="text" placeholder="목표 이름"><input class="goal-input" id="lg-amt" type="number" inputmode="numeric" style="width:64px"><span class="goal-salary">만</span></div>
+    <div class="goal-row" style="padding:4px 16px 10px"><span class="goal-date" style="font-size:11px;color:var(--text3)">현재 잔고 기준 진행률</span><span class="goal-total" id="lt-pct"></span></div>
     <div class="fixed-progress"><div class="fixed-progress-fill" id="lt-bar" style="background:var(--blue)"></div></div>
-    <div class="goal-row"><span class="goal-date">토스대출 잔액</span><span class="goal-total" style="color:var(--red)">210만</span></div>
+    <div class="goal-row" style="background:var(--bg3)"><span class="goal-date" style="font-size:10px;color:var(--text3);letter-spacing:.1em">대출</span></div>
+    <div id="loan-list"></div>
+    <div class="add-form"><input id="nln" placeholder="대출 이름" style="flex:1.2;min-width:0"><input id="nla" placeholder="만원" type="number" inputmode="decimal" style="width:64px;"><button class="add-btn" onclick="addLoan()">추가</button></div>
   </div>
 </div>
 
@@ -344,7 +347,7 @@ const MONTHS=[];for(let i=0;i<13;i++){const t=TY*12+TM-1+i;MONTHS.push(Math.floo
 const yl=ym=>(+ym.slice(0,4)===TY?'':ym.slice(2,4)+'년 ')+(+ym.slice(5))+'월';
 const monthOpts=sel=>MONTHS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${yl(m)}</option>`).join('');
 const addM=(ym,k)=>{const t=(+ym.slice(0,4))*12+(+ym.slice(5))-1+k;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0');};
-const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,cardEdit:false,nid:100,incPend:true,incCard:true,memo:'',loaded:false};
+const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,cardEdit:false,nid:100,incPend:true,incCard:true,memo:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
 const grp=ym=>S.recv.find(g=>g.ym===ym);
 const gTotal=g=>g.items.reduce((a,r)=>a+r.amt,0);
 function goalFor(ym){
@@ -430,9 +433,9 @@ function renderSev(){
   $('sev-card').innerHTML=`<div class="extra-row"><div class="extra-info"><div class="extra-name">예상 퇴직금</div><div class="extra-timing">${yl(v.retire)} 퇴직 기준</div></div>
     <div class="extra-right"><div class="extra-amt"><span class="extra-plus">+</span><span style="font-family:'Onest',sans-serif;font-size:15px;font-weight:500;">${fmt(c.amt)}</span></div></div></div>
     <div class="severance-detail"><span class="severance-label">입사일</span><input class="sev-in" type="date" value="${v.join}" onchange="S.sev.join=this.value||S.sev.join;renderAll()"></div>
-    <div class="severance-detail"><span class="severance-label">현재 월급</span><input class="sev-in" type="number" inputmode="decimal" value="${v.salary}" style="width:64px" onchange="S.sev.salary=parseFloat(this.value)||0;renderAll()" onfocus="this.select()"><span class="amount-unit">만</span></div>
+    <div class="severance-detail"><span class="severance-label">세전 월급</span><input class="sev-in" type="number" inputmode="decimal" value="${v.salary}" style="width:64px" onchange="S.sev.salary=parseFloat(this.value)||0;renderAll()" onfocus="this.select()"><span class="amount-unit">만</span></div>
     <div class="severance-detail"><span class="severance-label">퇴직월</span><select class="severance-select" onchange="S.sev.retire=this.value;renderAll()">${monthOpts(v.retire)}</select><span class="severance-calc">= ${fmt(c.amt)}</span></div>
-    <div class="severance-detail"><span class="severance-label" style="font-size:11px">근속 ${c.years}년 ${c.months}개월 · 퇴직 전 3개월 평균 ${fmt(c.avg)} · 대략치</span></div>`;
+    <div class="severance-detail"><span class="severance-label" style="font-size:11px">근속 ${c.years}년 ${c.months}개월 · 퇴직 전 3개월 평균 ${fmt(c.avg)} · 세전 기준 대략치</span></div>`;
 }
 function renderAcc(){
   $('acc-list').innerHTML=S.accs.map(a=>`<div class="item-row">
@@ -458,9 +461,9 @@ function calc(){
   $('k-cur').textContent=fmt(cur); $('k-pendname').textContent=yl(MONTHS[0]); $('k-pend').textContent='+'+fmt(pend); $('k-fixed').textContent='−'+fmt(fixedPend);
   $('k-cardname').textContent=card.month; $('k-card').textContent='−'+fmt(card.amount);
   [['pend',S.incPend],['card',S.incCard]].forEach(([k,on])=>{$('tg-'+k).classList.toggle('on',on);$('row-'+k).classList.toggle('off',!on);});
-  $('lt-pct').textContent=Math.round(cur/4000*100)+'%  ·  '+fmt(cur); $('lt-bar').style.width=Math.min(100,cur/4000*100)+'%';
+  const lg=+S.longGoal.amt||0; $('lt-pct').textContent=(lg>0?Math.round(cur/lg*100):0)+'%  ·  '+fmt(cur); $('lt-bar').style.width=(lg>0?Math.max(0,Math.min(100,cur/lg*100)):0)+'%';
 }
-function renderAll(){renderHead();renderGoals();calc();renderRecvMonths();renderFixed();renderCards();renderSev();renderAcc();renderAds();}
+function renderAll(){renderHead();renderGoals();renderLoans();calc();renderRecvMonths();renderFixed();renderCards();renderSev();renderAcc();renderAds();}
 function toggleFixed(id){const i=S.fixed.find(x=>x.id===id);i.done=!i.done;renderAll();}
 function updFixed(id,v){S.fixed.find(x=>x.id===id).amount=v;renderAll();}
 function delFixed(id){S.fixed=S.fixed.filter(x=>x.id!==id);renderAll();}
@@ -469,23 +472,34 @@ function toggleCardEdit(){S.cardEdit=!S.cardEdit;renderAll();}
 function updCard(id,v){S.cards.find(x=>x.id===id).amount=v;renderAll();}
 function delCard(id){S.cards=S.cards.filter(x=>x.id!==id);renderAll();}
 function addCard(){const m=$('ncm').value.trim(),a=parseFloat($('nca').value);if(!m||isNaN(a))return;S.cards.push({id:S.nid++,month:m,amount:a});renderAll();}
+function renderLoans(){
+  $('loan-list').innerHTML=S.loans.map(l=>`<div class="item-row"><input class="acc-name" type="text" value="${String(l.name||'').replace(/"/g,'&quot;')}" onchange="S.loans.find(x=>x.id===${l.id}).name=this.value;renderAll()"><div class="item-amount" style="color:var(--red)"><input class="amount-input" type="number" inputmode="decimal" value="${l.amt}" style="color:var(--red);width:64px" onchange="S.loans.find(x=>x.id===${l.id}).amt=parseFloat(this.value)||0;renderAll()" onfocus="this.select()"><span class="amount-unit">만</span></div><button class="del-btn" onclick="S.loans=S.loans.filter(x=>x.id!==${l.id});renderAll()">✕</button></div>`).join('');
+}
+function addLoan(){const n=$('nln').value.trim(),a=parseFloat($('nla').value);if(!n||isNaN(a))return;S.loans.push({id:S.nid++,name:n,amt:a});$('nln').value=$('nla').value='';renderAll();}
+$('lg-name').onchange=function(){S.longGoal.name=this.value;renderAll();};
+$('lg-amt').oninput=function(){S.longGoal.amt=parseFloat(this.value)||0;calc();};
 function persist(){ if(window.__persist) window.__persist(); }
 const __calc=calc; calc=function(){__calc();persist();};
 const __ads=renderAds; renderAds=function(){__ads();persist();};
 $('memo-input').oninput=function(){S.memo=this.value;persist();};
 $('goal').oninput=function(){S.goals[MONTHS[0]]=parseFloat(this.value)||0;calc();};$('ad-meta').oninput=renderAds;$('ad-tw').oninput=renderAds;
 const arr=v=>Array.isArray(v)?v.filter(Boolean):(v?Object.values(v):[]);
-function payload(){return {fixedItems:S.fixed,cardMonths:S.cards,accounts:S.accs,recvGroups:S.recv,goalMap:S.goals,sev:S.sev,adMeta:+$('ad-meta').value||0,adTw:+$('ad-tw').value||0,nextId:S.nid,memo:S.memo};}
+function payload(){return {fixedItems:S.fixed,cardMonths:S.cards,accounts:S.accs,recvGroups:S.recv,goalMap:S.goals,sev:S.sev,adMeta:+$('ad-meta').value||0,adTw:+$('ad-tw').value||0,nextId:S.nid,memo:S.memo,longGoal:S.longGoal,loans:S.loans,loansInit:true};}
 function applyData(d){
   d=d||{};
-  S.fixed=arr(d.fixedItems); S.cards=arr(d.cardMonths);
+  const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n;};
+  S.fixed=arr(d.fixedItems).map(x=>Object.assign(x,{amount:num(x.amount)})); S.cards=arr(d.cardMonths).map(x=>Object.assign(x,{amount:num(x.amount)}));
   S.accs=d.accounts?arr(d.accounts):[{id:1,name:'통장',amt:d.currentBalance||0,inc:true},{id:2,name:'적금',amt:d.savingsBalance||0,inc:false}].filter(a=>a.amt);
-  S.recv=arr(d.recvGroups).map(g=>({ym:g.ym,items:arr(g.items)}));
-  S.goals=d.goalMap||{};
-  S.sev=Object.assign({join:'',salary:0,retire:MONTHS[0]},d.sev||{});
+  S.recv=arr(d.recvGroups).map(g=>({ym:g.ym,items:arr(g.items).map(i=>Object.assign(i,{amt:num(i.amt)}))}));
+  S.goals={}; Object.entries(d.goalMap||{}).forEach(([k,v])=>{S.goals[k]=num(v);});
+  S.accs.forEach(a=>{a.amt=num(a.amt);});
+  S.longGoal=Object.assign({name:'내년 3월 모으기',amt:4000},d.longGoal||{}); S.longGoal.amt=num(S.longGoal.amt);
+  S.loans=d.loansInit?arr(d.loans).map(x=>Object.assign(x,{amt:num(x.amt)})):[{id:1,name:'토스대출',amt:210}];
+  $('lg-name').value=S.longGoal.name||''; $('lg-amt').value=S.longGoal.amt;
+  S.sev=Object.assign({join:'',salary:0,retire:MONTHS[0]},d.sev||{}); S.sev.salary=num(S.sev.salary);
   $('ad-meta').value=d.adMeta??14; $('ad-tw').value=d.adTw??7;
   S.memo=d.memo||''; $('memo-input').value=S.memo;
-  let mx=100; [...S.fixed,...S.cards,...S.accs].forEach(x=>{mx=Math.max(mx,(x.id||0)+1);}); S.recv.forEach(g=>g.items.forEach(i=>{mx=Math.max(mx,(i.id||0)+1);}));
+  let mx=100; [...S.fixed,...S.cards,...S.accs,...S.loans].forEach(x=>{mx=Math.max(mx,(x.id||0)+1);}); S.recv.forEach(g=>g.items.forEach(i=>{mx=Math.max(mx,(i.id||0)+1);}));
   S.nid=Math.max(d.nextId||100,mx);
   if(S.recv.length) S.openM[S.recv[0].ym]=true;
   S.loaded=true; renderAll();

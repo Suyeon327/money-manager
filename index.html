@@ -246,6 +246,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .lg-pct{font-family:'Onest',sans-serif;font-size:28px;font-weight:500;color:var(--blue);line-height:1}
 .lg-row2{display:flex;justify-content:space-between;align-items:center;margin-top:6px;min-height:22px}
 .lg-sum{font-size:12px;color:var(--text2)}
+.item-row.q-row{cursor:pointer}
+.qe-box{padding:10px 16px 12px;background:rgba(255,255,255,0.03);border-top:.5px solid var(--border)}
+.qe-chips{display:flex;gap:6px;margin-bottom:8px}
+.qe-chip{background:var(--bg3);border:.5px solid var(--border2);border-radius:20px;color:var(--text2);font-size:12px;padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.qe-chip.on{background:var(--text);color:#000;border-color:var(--text)}
+.qe-line{display:flex;align-items:center;gap:8px}
+.qe-line input{flex:1;min-width:0;background:var(--bg3);border:.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:16px;font-family:'Onest',sans-serif;padding:8px 10px;outline:none}
+.qe-prev{font-size:12px;color:var(--text2);margin-top:8px;min-height:16px}
 </style>
 </head>
 <body>
@@ -381,7 +389,7 @@ const MONTHS=[];for(let i=0;i<13;i++){const t=TY*12+TM-1+i;MONTHS.push(Math.floo
 const yl=ym=>(+ym.slice(0,4)===TY?'':ym.slice(2,4)+'년 ')+(+ym.slice(5))+'월';
 const monthOpts=sel=>MONTHS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${yl(m)}</option>`).join('');
 const addM=(ym,k)=>{const t=(+ym.slice(0,4))*12+(+ym.slice(5))-1+k;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0');};
-const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,loan:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,nid:100,incPend:true,incCard:true,memo:'',fixedCycle:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
+const S={fixed:[],cards:[],accs:[],sev:{join:'',salary:0,retire:MONTHS[0]},recv:[],openM:{},fixedOpen:false,goals:{},goalOpen:false,ed:{accs:false,goal:false,lg:false,loan:false,recv:false,fixed:false,cards:false,sev:false,ads:false},accOpen:false,qe:null,qeMode:'set',nid:100,incPend:true,incCard:true,memo:'',fixedCycle:'',loaded:false,longGoal:{name:'내년 3월 모으기',amt:4000},loans:[]};
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const grp=ym=>S.recv.find(g=>g.ym===ym);
 const gTotal=g=>g.items.reduce((a,r)=>a+r.amt,0);
@@ -487,8 +495,15 @@ function renderAcc(){
     <input class="acc-name ${a.inc?'':'off'}" type="text" value="${esc(a.name)}" onchange="S.accs.find(x=>x.id===${a.id}).name=this.value;renderAll()">
     <div class="item-amount ${a.inc?'':'done'}"><input class="amount-input" type="number" inputmode="decimal" value="${a.amt}" onchange="S.accs.find(x=>x.id===${a.id}).amt=parseFloat(this.value)||0;renderAll()" onfocus="this.select()" style="width:64px"><span class="amount-unit">만</span></div>
     <span class="drag-h" title="드래그해서 순서 변경">⋮⋮</span><button class="del-btn" onclick="S.accs=S.accs.filter(x=>x.id!==${a.id});renderAll()">✕</button></div>`
-  :`<div class="item-row"><div class="check-circle ${a.inc?'done':''}" onclick="S.accs.find(x=>x.id===${a.id}).inc=!S.accs.find(x=>x.id===${a.id}).inc;renderAll()"></div><span class="item-name ${a.inc?'':'done'}">${esc(a.name)}${a.inc?'':' <span class="card-tag" style="background:var(--bg3);color:var(--text3)">합산 제외</span>'}</span><div class="item-amount ${a.inc?'':'done'}">${fmt(a.amt)}</div></div>`).join('');
+  :`<div class="item-row q-row" onclick="quickEdit(${a.id})"><div class="check-circle ${a.inc?'done':''}" onclick="event.stopPropagation();S.accs.find(x=>x.id===${a.id}).inc=!S.accs.find(x=>x.id===${a.id}).inc;renderAll()"></div><span class="item-name ${a.inc?'':'done'}">${esc(a.name)}${a.inc?'':' <span class="card-tag" style="background:var(--bg3);color:var(--text3)">합산 제외</span>'}</span><div class="item-amount ${a.inc?'':'done'}">${fmt(a.amt)}</div></div>`
+  +(S.qe===a.id?`<div class="qe-box"><div class="qe-chips">${[['set','잔액 변경'],['add','+ 입금'],['sub','− 출금']].map(m=>`<button class="qe-chip ${S.qeMode===m[0]?'on':''}" onclick="qeMode('${m[0]}')">${m[1]}</button>`).join('')}</div><div class="qe-line"><input id="qe-in" type="number" inputmode="decimal" placeholder="${S.qeMode==='set'?a.amt:'금액'}" oninput="qePrev()" onkeydown="if(event.key==='Enter')qeSave();if(event.key==='Escape')qeCancel()"><span class="amount-unit">만</span><button class="add-btn" onclick="qeSave()">확인</button><button class="add-btn" onclick="qeCancel()">취소</button></div><div class="qe-prev" id="qe-prev"></div></div>`:'')).join('');
 }
+function quickEdit(id){ S.qe=(S.qe===id?null:id); S.qeMode='set'; renderAcc(); if(S.qe){const i=$('qe-in'); if(i) i.focus();} }
+function qeMode(m){ S.qeMode=m; const a=S.accs.find(x=>x.id===S.qe); document.querySelectorAll('.qe-chip').forEach((b,i)=>b.classList.toggle('on',['set','add','sub'][i]===m)); const i=$('qe-in'); if(i&&a) i.placeholder=m==='set'?a.amt:'금액'; qePrev(); if(i) i.focus(); }
+function qeResult(){ const a=S.accs.find(x=>x.id===S.qe), i=$('qe-in'); if(!a||!i) return null; const v=parseFloat(i.value); if(isNaN(v)) return null; return S.qeMode==='set'?v:S.qeMode==='add'?a.amt+v:a.amt-v; }
+function qePrev(){ const a=S.accs.find(x=>x.id===S.qe), r=qeResult(), p=$('qe-prev'); if(!p||!a) return; p.textContent=r==null?'':fmt(a.amt)+' → '+fmt(r); }
+function qeSave(){ const a=S.accs.find(x=>x.id===S.qe), r=qeResult(); if(!a) return; if(r==null){ const p=$('qe-prev'); if(p) p.textContent='금액을 입력하세요'; return; } a.amt=Math.round(r*10)/10; S.qe=null; renderAll(); }
+function qeCancel(){ S.qe=null; renderAcc(); }
 function addAcc(){const n=$('nan').value.trim(),a=parseFloat($('naa').value);if(!n||isNaN(a))return;S.accs.push({id:S.nid++,name:n,amt:a,inc:true});$('nan').value=$('naa').value='';renderAll();}
 function renderAds(){ const m=+$('ad-meta').value||0, t=+$('ad-tw').value||0; $('ad-meta-v').textContent=fmt(m); $('ad-tw-v').textContent=fmt(t); $('ad-sum').textContent=fmt(m+t); }
 function calc(){
